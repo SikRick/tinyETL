@@ -38,7 +38,8 @@ class Stage:
     def load_to_staging_tables(self):
         spark = SparkSession.builder.appName(self.session).getOrCreate()
         try:
+            print(f"staging started for file {self.file_path}")
             df = spark.read.options(header=self.header, delimiter=self.delimiter).csv(self.file_path)
-            print(df.show())
+            print(df.show(1))
         except FileNotFoundError:
             print("Error finding the specified file!!!")
