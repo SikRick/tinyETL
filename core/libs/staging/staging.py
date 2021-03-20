@@ -35,7 +35,7 @@ class Stage:
         self.header = header
         self.session = session
 
-    def load_to_staging_tables(self):
+    def load_to_staging_table(self):
         spark = SparkSession.builder.appName(self.session).getOrCreate()
         try:
             print(f"staging started for file {self.file_path}")
