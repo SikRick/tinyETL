@@ -40,6 +40,12 @@ class Stage:
         try:
             print(f"staging started for file {self.file_path}")
             df = spark.read.options(header=self.header, delimiter=self.delimiter).csv(self.file_path)
-            print(df.show(1))
+            try:
+                spark.sql(f"use {self.database}")
+            except Exception:
+                print("database not found...creating..")
+                spark.sql(f"create database {self.database}")
+            df.write.saveAsTable(f"{self.database}.{self.table_name}")
+            print("data staging completed")
         except FileNotFoundError:
             print("Error finding the specified file!!!")
