@@ -7,6 +7,7 @@ __author__ = "SikRick"
 
 import findspark
 findspark.init()
+import os
 from pyspark.sql import SparkSession
 
 
@@ -42,7 +43,7 @@ class Stage:
         """
         Dumps the given flatfile to a staging table
         """
-        self.spark = SparkSession.builder.appName(self.session).getOrCreate()
+        self.spark = SparkSession.builder.config("spark.sql.warehouse.dir", os.environ["HOME"]+"/tinyETL").appName(self.session).getOrCreate()
         try:
             print(f"staging started for file {self.file_path}")
             df = self.spark.read.options(header=self.header, delimiter=self.delimiter).csv(self.file_path)
