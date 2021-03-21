@@ -15,7 +15,7 @@ class Stage:
     Stage is a class built to handle staging the flatfile to a specified database.
     """
 
-    def __init__(self, file_path:str, table_name:str, database:str, replace:bool=False, delimiter:chr=",", header:bool=True, session:str="training"):
+    def __init__(self, file_path:str, table_name:str, database:str, replace:bool=False, delimiter:chr=",", header:bool=True, validations:dict={}, transaformations:dict={}, session:str="training"):
         """
         params 
         ------
@@ -32,20 +32,53 @@ class Stage:
         self.database = database
         self.replace = replace
         self.delimiter = delimiter
+        self.transformations = transaformations
+        self.validations = validations
         self.header = header
         self.session = session
+        self.staged = False
 
     def load_to_staging_table(self):
-        spark = SparkSession.builder.appName(self.session).getOrCreate()
+        """
+        Dumps the given flatfile to a staging table
+        """
+        self.spark = SparkSession.builder.appName(self.session).getOrCreate()
         try:
             print(f"staging started for file {self.file_path}")
-            df = spark.read.options(header=self.header, delimiter=self.delimiter).csv(self.file_path)
+            df = self.spark.read.options(header=self.header, delimiter=self.delimiter).csv(self.file_path)
             try:
-                spark.sql(f"use {self.database}")
+                self.spark.catalog.setCurrentDatabase(self.database)
             except Exception:
                 print("database not found...creating..")
-                spark.sql(f"create database {self.database}")
+                self.spark.sql(f"create database {self.database}")
             df.write.saveAsTable(f"{self.database}.{self.table_name}")
+            self.staged = True
             print("data staging completed")
         except FileNotFoundError:
             print("Error finding the specified file!!!")
+        return self
+
+    def apply_validations(self):
+        rejects_df = None
+        if self.staged:
+            for validation_name, validation in self.validations.items():
+                query = validation["query"]
+                flag = validation["flag"]
+                print(f"Running validation {validation_name} : TableName -> {self.table_name}")
+                if rejects_df:
+                    #check if rejects_df is initialized
+                    current_df = self.spark.sql(query)
+                    rejects_df = rejects_df.union(current_df)
+                else:
+                    print("initializing error table")
+                    rejects_df = self.spark.sql(query)
+            rejects_df.write.saveAsTable(f"{self.database}.{self.table_name}_Rejects")
+        else:
+            print("staging not completed")
+            pass
+        print(f"validations ran for table : {self.table_name}")
+        return self
+
+            
+    def generate_transformations(self):
+        pass
