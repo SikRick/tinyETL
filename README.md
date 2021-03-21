@@ -1,4 +1,4 @@
-<h1>A light weight ETL platform written in python</h1>
+<h1>A light weight ETL platform written in python [Read wiki for more info]</h1>
 
 <h3>Usage</h3>
 <ul>
